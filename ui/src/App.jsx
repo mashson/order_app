@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import OrderScreen from './components/OrderScreen'
+import AdminScreen from './components/AdminScreen'
 
 function App() {
   const [currentView, setCurrentView] = useState('order') // 'order' or 'admin'
@@ -31,10 +32,7 @@ function App() {
         {currentView === 'order' ? (
           <OrderScreen />
         ) : (
-          <div>
-            <h2>관리자 화면</h2>
-            <p>관리자 화면이 여기에 표시됩니다.</p>
-          </div>
+          <AdminScreen />
         )}
       </main>
     </div>
