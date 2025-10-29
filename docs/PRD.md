@@ -318,3 +318,333 @@
 - 재고 부족 알림 기능
 - 주문 히스토리 검색 기능
 - 영업 통계 및 리포트 기능
+
+## 6. 백엔드 개발 PRD
+
+### 6.1 개요
+커피 주문 앱의 백엔드 시스템을 구축하여 프론트엔드와 데이터베이스 간의 연동을 담당합니다.
+
+### 6.2 데이터 모델
+
+#### 6.2.1 Menus (메뉴 테이블)
+커피 메뉴의 기본 정보를 저장하는 테이블입니다.
+
+**필드 구성:**
+- `id` (Primary Key): 메뉴 고유 식별자
+- `name` (String, NOT NULL): 커피 이름 (예: "아메리카노(ICE)")
+- `description` (Text): 메뉴 설명
+- `price` (Integer, NOT NULL): 기본 가격 (원 단위)
+- `image_url` (String): 이미지 파일 경로
+- `stock_quantity` (Integer, DEFAULT 0): 재고 수량
+- `is_available` (Boolean, DEFAULT true): 판매 가능 여부
+- `created_at` (Timestamp): 생성 일시
+- `updated_at` (Timestamp): 수정 일시
+
+#### 6.2.2 Options (옵션 테이블)
+메뉴에 추가할 수 있는 옵션 정보를 저장하는 테이블입니다.
+
+**필드 구성:**
+- `id` (Primary Key): 옵션 고유 식별자
+- `menu_id` (Foreign Key): 연결할 메뉴 ID
+- `name` (String, NOT NULL): 옵션 이름 (예: "샷 추가", "시럽 추가")
+- `price` (Integer, DEFAULT 0): 옵션 추가 가격 (원 단위)
+- `is_available` (Boolean, DEFAULT true): 옵션 사용 가능 여부
+- `created_at` (Timestamp): 생성 일시
+- `updated_at` (Timestamp): 수정 일시
+
+#### 6.2.3 Orders (주문 테이블)
+고객의 주문 정보를 저장하는 테이블입니다.
+
+**필드 구성:**
+- `id` (Primary Key): 주문 고유 식별자
+- `order_time` (Timestamp, NOT NULL): 주문 일시
+- `total_price` (Integer, NOT NULL): 총 주문 금액 (원 단위)
+- `status` (Enum, DEFAULT 'received'): 주문 상태
+  - `received`: 주문 접수
+  - `in_progress`: 제조 중
+  - `completed`: 제조 완료
+  - `cancelled`: 주문 취소
+- `created_at` (Timestamp): 생성 일시
+- `updated_at` (Timestamp): 수정 일시
+
+#### 6.2.4 Order_Items (주문 상세 테이블)
+각 주문에 포함된 메뉴와 옵션의 상세 정보를 저장하는 테이블입니다.
+
+**필드 구성:**
+- `id` (Primary Key): 주문 상세 고유 식별자
+- `order_id` (Foreign Key): 주문 ID
+- `menu_id` (Foreign Key): 메뉴 ID
+- `quantity` (Integer, NOT NULL): 주문 수량
+- `unit_price` (Integer, NOT NULL): 단가 (옵션 포함)
+- `subtotal` (Integer, NOT NULL): 소계 (단가 × 수량)
+- `selected_options` (JSON): 선택된 옵션 정보
+- `created_at` (Timestamp): 생성 일시
+
+### 6.3 데이터베이스 관계
+
+```
+Menus (1) ←→ (N) Options
+Orders (1) ←→ (N) Order_Items
+Menus (1) ←→ (N) Order_Items
+```
+
+### 6.4 사용자 흐름 및 데이터 처리
+
+#### 6.4.1 메뉴 조회 흐름
+1. 사용자가 '주문하기' 화면 접속
+2. 프론트엔드에서 `GET /api/menus` 요청
+3. 백엔드에서 Menus 테이블과 Options 테이블 조인하여 데이터 반환
+4. 재고 수량(`stock_quantity`)은 관리자 화면에서만 표시
+
+#### 6.4.2 주문 처리 흐름
+1. 사용자가 메뉴 선택 및 옵션 추가
+2. 장바구니에서 '주문하기' 버튼 클릭
+3. 프론트엔드에서 `POST /api/orders` 요청으로 주문 데이터 전송
+4. 백엔드에서 다음 순서로 처리:
+   - Orders 테이블에 주문 기본 정보 저장
+   - Order_Items 테이블에 주문 상세 정보 저장
+   - Menus 테이블의 재고 수량(`stock_quantity`) 차감
+5. 주문 완료 응답 반환
+
+#### 6.4.3 관리자 화면 데이터 흐름
+1. 관리자가 '관리자' 화면 접속
+2. 프론트엔드에서 다음 API 요청:
+   - `GET /api/admin/dashboard` - 주문 통계
+   - `GET /api/admin/inventory` - 재고 현황
+   - `GET /api/admin/orders` - 주문 목록
+3. 주문 상태 변경 시 `PATCH /api/admin/orders/:id` 요청
+
+### 6.5 API 설계
+
+#### 6.5.1 메뉴 관련 API
+
+**GET /api/menus**
+- 설명: 전체 메뉴 목록 조회 (옵션 포함)
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "아메리카노(ICE)",
+      "description": "진한 에스프레소에 시원한 얼음과 물을 더한 음료",
+      "price": 4000,
+      "image_url": "/images/americano-ice.jpg",
+      "is_available": true,
+      "options": [
+        {
+          "id": 1,
+          "name": "샷 추가",
+          "price": 500
+        },
+        {
+          "id": 2,
+          "name": "시럽 추가",
+          "price": 0
+        }
+      ]
+    }
+  ]
+}
+```
+
+**GET /api/menus/:id**
+- 설명: 특정 메뉴 상세 정보 조회
+- 매개변수: `id` (메뉴 ID)
+
+#### 6.5.2 주문 관련 API
+
+**POST /api/orders**
+- 설명: 새 주문 생성
+- 요청 본문:
+```json
+{
+  "items": [
+    {
+      "menu_id": 1,
+      "quantity": 2,
+      "selected_options": [1],
+      "unit_price": 4500
+    }
+  ],
+  "total_price": 9000
+}
+```
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": 123,
+    "order_time": "2024-07-31T13:00:00Z",
+    "total_price": 9000,
+    "status": "received"
+  }
+}
+```
+
+**GET /api/orders/:id**
+- 설명: 특정 주문 정보 조회
+- 매개변수: `id` (주문 ID)
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "order_time": "2024-07-31T13:00:00Z",
+    "total_price": 9000,
+    "status": "received",
+    "items": [
+      {
+        "menu_name": "아메리카노(ICE)",
+        "quantity": 2,
+        "selected_options": ["샷 추가"],
+        "subtotal": 9000
+      }
+    ]
+  }
+}
+```
+
+#### 6.5.3 관리자 API
+
+**GET /api/admin/dashboard**
+- 설명: 관리자 대시보드 통계 조회
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": {
+    "total_orders": 15,
+    "received_orders": 3,
+    "in_progress_orders": 2,
+    "completed_orders": 10
+  }
+}
+```
+
+**GET /api/admin/inventory**
+- 설명: 재고 현황 조회
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "아메리카노(ICE)",
+      "stock_quantity": 10,
+      "is_available": true
+    }
+  ]
+}
+```
+
+**PATCH /api/admin/inventory/:id**
+- 설명: 재고 수량 수정
+- 매개변수: `id` (메뉴 ID)
+- 요청 본문:
+```json
+{
+  "stock_quantity": 15
+}
+```
+
+**GET /api/admin/orders**
+- 설명: 전체 주문 목록 조회 (관리자용)
+- 쿼리 매개변수: `status`, `page`, `limit`
+
+**PATCH /api/admin/orders/:id**
+- 설명: 주문 상태 변경
+- 매개변수: `id` (주문 ID)
+- 요청 본문:
+```json
+{
+  "status": "in_progress"
+}
+```
+
+### 6.6 비즈니스 로직
+
+#### 6.6.1 재고 관리 로직
+- 주문 생성 시 해당 메뉴의 재고 수량 자동 차감
+- 재고가 0이 되면 `is_available` 필드를 `false`로 변경
+- 관리자가 재고 추가 시 `is_available` 필드를 `true`로 복원
+
+#### 6.6.2 주문 상태 관리 로직
+- 새 주문 생성 시 기본 상태는 `received` (주문 접수)
+- 상태 변경 순서: `received` → `in_progress` → `completed`
+- 취소는 `received` 상태에서만 가능
+
+#### 6.6.3 데이터 검증 로직
+- 주문 생성 시 재고 수량 확인
+- 메뉴 ID와 옵션 ID의 유효성 검증
+- 가격 계산 검증 (프론트엔드 계산과 백엔드 계산 일치 확인)
+
+### 6.7 에러 처리
+
+#### 6.7.1 HTTP 상태 코드
+- `200 OK`: 성공적인 요청
+- `201 Created`: 리소스 생성 성공
+- `400 Bad Request`: 잘못된 요청 데이터
+- `404 Not Found`: 리소스를 찾을 수 없음
+- `409 Conflict`: 재고 부족 등 비즈니스 로직 충돌
+- `500 Internal Server Error`: 서버 내부 오류
+
+#### 6.7.2 에러 응답 형식
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_STOCK",
+    "message": "재고가 부족합니다.",
+    "details": {
+      "menu_id": 1,
+      "requested_quantity": 5,
+      "available_quantity": 2
+    }
+  }
+}
+```
+
+### 6.8 보안 고려사항
+
+#### 6.8.1 입력 데이터 검증
+- SQL Injection 방지를 위한 매개변수화된 쿼리 사용
+- XSS 방지를 위한 입력 데이터 이스케이프 처리
+- 데이터 타입 및 범위 검증
+
+#### 6.8.2 관리자 API 보안
+- 관리자 API에 대한 인증/인가 체계 (향후 구현)
+- 민감한 데이터 접근 로깅
+
+### 6.9 성능 최적화
+
+#### 6.9.1 데이터베이스 최적화
+- 자주 조회되는 컬럼에 인덱스 생성
+- 메뉴 조회 시 옵션 정보 조인 최적화
+- 주문 통계 조회 시 집계 쿼리 최적화
+
+#### 6.9.2 캐싱 전략
+- 메뉴 정보 캐싱 (변경 빈도가 낮음)
+- 관리자 대시보드 통계 캐싱
+
+### 6.10 개발 우선순위
+
+#### Phase 1 (핵심 기능)
+1. 데이터베이스 스키마 생성
+2. 메뉴 조회 API
+3. 주문 생성 API
+4. 기본적인 관리자 API
+
+#### Phase 2 (관리 기능)
+1. 재고 관리 API
+2. 주문 상태 변경 API
+3. 관리자 대시보드 API
+
+#### Phase 3 (최적화)
+1. 에러 처리 고도화
+2. 성능 최적화
+3. 로깅 및 모니터링

@@ -1,31 +1,13 @@
-import { useState } from 'react'
-import { initialInventory, initialOrders, getStockStatus, calculateOrderStats } from '../data/adminData'
+import { getStockStatus, calculateOrderStats } from '../data/adminData'
+import { useAppContext } from '../context/AppContext'
 import './AdminScreen.css'
 
 function AdminScreen() {
-  const [inventory, setInventory] = useState(initialInventory)
-  const [orders, setOrders] = useState(initialOrders)
+  const { inventory, orders, updateStock, updateOrderStatus, resetData } = useAppContext()
 
-  // 재고 수량 조절
-  const updateStock = (id, change) => {
-    setInventory(prev => prev.map(item => {
-      if (item.id === id) {
-        const newStock = Math.max(0, item.stock + change)
-        return { ...item, stock: newStock }
-      }
-      return item
-    }))
-  }
-
-  // 주문 상태 변경
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return { ...order, status: newStatus }
-      }
-      return order
-    }))
-  }
+  // 디버깅용 로그
+  console.log('AdminScreen - inventory:', inventory)
+  console.log('AdminScreen - orders:', orders)
 
   // 주문 통계 계산
   const orderStats = calculateOrderStats(orders)
@@ -34,7 +16,12 @@ function AdminScreen() {
     <div className="admin-screen">
       {/* 관리자 대시보드 */}
       <section className="dashboard-section">
-        <h3>관리자 대시보드</h3>
+        <div className="dashboard-header">
+          <h3>관리자 대시보드</h3>
+          <button className="reset-btn" onClick={resetData}>
+            데이터 초기화
+          </button>
+        </div>
         <div className="stats-container">
           <div className="stat-item">
             <span className="stat-label">총 주문</span>
@@ -166,7 +153,7 @@ function OrderCard({ order, onStatusUpdate }) {
           {order.items.map((item, index) => (
             <span key={index} className="order-item">
               {item.productName}
-              {item.options.length > 0 && ` (${item.options.join(', ')})`}
+              {item.options && item.options.length > 0 && ` (${item.options.join(', ')})`}
               {' x '}{item.quantity}
             </span>
           ))}

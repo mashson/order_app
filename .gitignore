@@ -1,0 +1,32 @@
+# 프로젝트 루트 .gitignore (공통 항목)
+
+# Dependencies (각 폴더의 node_modules는 폴더별 .gitignore에서 처리)
+# node_modules/는 루트에 없으므로 생략
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Logs (공통)
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
