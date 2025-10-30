@@ -11,8 +11,23 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // 미들웨어 설정
+// CORS 설정 - 개발 및 프로덕션 환경 모두 지원
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.FRONTEND_URL, // Render 프론트엔드 URL
+].filter(Boolean); // undefined 값 제거
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'], // Vite 개발 서버
+  origin: function (origin, callback) {
+    // origin이 없는 경우 (같은 도메인에서의 요청 등) 허용
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

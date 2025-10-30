@@ -4,17 +4,43 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Render 또는 기타 플랫폼에서 제공하는 DATABASE_URL 파싱
+const getDatabaseConfig = () => {
+  // Render는 DATABASE_URL 환경 변수를 제공합니다
+  if (process.env.DATABASE_URL) {
+    // DATABASE_URL 형식: postgres://user:password@host:port/database
+    const url = new URL(process.env.DATABASE_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port) || 5432,
+      database: url.pathname.slice(1), // 첫 번째 '/' 제거
+      user: url.username,
+      password: url.password,
+      // SSL 연결 (Render PostgreSQL은 SSL 필요)
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false
+      } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    };
+  }
+
+  // 로컬 개발 환경
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 5432,
+    database: process.env.DB_NAME || 'cozy_coffee',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'password',
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
+};
+
 // 데이터베이스 연결 풀 생성
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'cozy_coffee',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'password',
-  max: 20, // 최대 연결 수
-  idleTimeoutMillis: 30000, // 유휴 연결 타임아웃
-  connectionTimeoutMillis: 2000, // 연결 타임아웃
-});
+const pool = new Pool(getDatabaseConfig());
 
 // 연결 테스트 함수
 export const testConnection = async () => {
