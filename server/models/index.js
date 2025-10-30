@@ -2,7 +2,7 @@ import pool from '../config/database.js';
 
 // 메뉴 모델
 export const Menu = {
-  // 전체 메뉴 조회 (옵션 포함)
+  // 전체 메뉴 조회 (옵션 포함) - 품절 상품도 포함
   async findAll() {
     const query = `
       SELECT 
@@ -19,7 +19,6 @@ export const Menu = {
         ) as options
       FROM menus m
       LEFT JOIN options o ON m.id = o.menu_id AND o.is_available = true
-      WHERE m.is_available = true
       GROUP BY m.id
       ORDER BY m.id;
     `;
@@ -27,7 +26,7 @@ export const Menu = {
     return result.rows;
   },
 
-  // 특정 메뉴 조회
+  // 특정 메뉴 조회 - 품절 상품도 포함
   async findById(id) {
     const query = `
       SELECT 
@@ -44,7 +43,7 @@ export const Menu = {
         ) as options
       FROM menus m
       LEFT JOIN options o ON m.id = o.menu_id AND o.is_available = true
-      WHERE m.id = $1 AND m.is_available = true
+      WHERE m.id = $1
       GROUP BY m.id;
     `;
     const result = await pool.query(query, [id]);
