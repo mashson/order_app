@@ -19,6 +19,11 @@ npm run dev
 npm start
 ```
 
+### 데이터베이스 초기화
+```bash
+npm run init-db
+```
+
 ## 📡 API 엔드포인트
 
 ### 기본 정보
@@ -58,24 +63,57 @@ server/
 
 - **Node.js** - JavaScript 런타임
 - **Express.js** - 웹 프레임워크
+- **PostgreSQL** - 관계형 데이터베이스
+- **pg** - PostgreSQL Node.js 클라이언트
 - **CORS** - Cross-Origin Resource Sharing
 - **dotenv** - 환경 변수 관리
 - **nodemon** - 개발용 자동 재시작
 
-## 📝 개발 상태
+## 🗄️ 데이터베이스
 
-현재 메모리 기반의 임시 데이터를 사용하고 있습니다. 향후 데이터베이스 연동 예정입니다.
+PostgreSQL 데이터베이스를 사용합니다.
+
+### 스키마
+- `menus` - 메뉴 정보
+- `options` - 메뉴 옵션
+- `orders` - 주문 정보
+- `order_items` - 주문 상세 항목
+
+자세한 스키마 정보는 [DATABASE_SCHEMA.md](../docs/DATABASE_SCHEMA.md)를 참조하세요.
+
+### 환경 변수
+```env
+# 로컬 개발 환경
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=cozy_coffee
+DB_USER=postgres
+DB_PASSWORD=password
+
+# Render 프로덕션 환경
+DATABASE_URL=postgres://user:password@host:port/database
+NODE_ENV=production
+```
+
+### 초기 데이터
+데이터베이스 초기화 시 다음 데이터가 자동으로 삽입됩니다:
+- 아메리카노(ICE) - 4,000원
+- 아메리카노(HOT) - 4,000원
+- 카페라떼 - 5,000원 (품절)
+
+## 📝 개발 상태
 
 ### 완료된 기능
 - ✅ Express 서버 설정
 - ✅ CORS 설정
+- ✅ PostgreSQL 데이터베이스 연동
+- ✅ 데이터베이스 스키마 및 초기화
 - ✅ 기본 API 라우트 구조
-- ✅ 메뉴 조회 API
-- ✅ 주문 생성 API
-- ✅ 관리자 API (기본)
+- ✅ 메뉴 조회 API (DB 연동)
+- ✅ 주문 생성 API (DB 연동, 재고 관리)
+- ✅ 관리자 API (DB 연동, 재고 관리)
 
 ### 향후 개발 예정
-- 🔄 데이터베이스 연동 (PostgreSQL)
 - 🔄 데이터 검증 미들웨어
 - 🔄 에러 처리 고도화
 - 🔄 로깅 시스템

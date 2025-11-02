@@ -30,3 +30,9 @@ desktop.ini
 *.db
 *.sqlite
 *.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env

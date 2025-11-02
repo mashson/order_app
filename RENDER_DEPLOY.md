@@ -80,7 +80,26 @@
    ```
 5. **Create Web Service** 클릭
 
-### 4단계: 백엔드 CORS 설정 업데이트
+### 4단계: 데이터베이스 스키마 초기화
+
+서버가 시작될 때 자동으로 데이터베이스 스키마가 생성되지만, 수동으로 초기화하려면 다음 방법 중 하나를 사용할 수 있습니다:
+
+#### 방법 A: 서버 재배포 (권장)
+서버가 처음 시작될 때 `initializeDatabase()` 함수가 자동으로 실행되어:
+- 테이블 생성 (menus, options, orders, order_items)
+- 초기 데이터 삽입 (3개 메뉴 + 옵션)
+
+#### 방법 B: 수동 실행 (로컬 또는 Render Shell 사용)
+Render Shell을 사용하여 수동으로 실행:
+1. Render 대시보드 → 백엔드 서비스 선택
+2. **Shell** 탭 클릭
+3. 다음 명령어 실행:
+   ```bash
+   cd /opt/render/project/src/server
+   npm run init-db
+   ```
+
+### 5단계: 백엔드 CORS 설정 업데이트
 
 백엔드 서버의 환경 변수에 프론트엔드 URL 추가:
 
