@@ -242,9 +242,18 @@ export const AppProvider = ({ children }) => {
   // 주문 상태 업데이트 (서버 반영)
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
+      console.log('🔄 주문 상태 업데이트 시도:', { orderId, newStatus })
+      
       // 한글 → 서버 상태코드 변환
       const mapToServer = (s) => (s === '주문 접수' ? 'received' : s === '제조 중' ? 'in_progress' : s === '제조 완료' ? 'completed' : s)
-      await api.admin.updateOrderStatus(orderId, mapToServer(newStatus))
+      const serverStatus = mapToServer(newStatus)
+      
+      console.log('📤 서버로 전송할 상태:', serverStatus)
+      
+      await api.admin.updateOrderStatus(orderId, serverStatus)
+      
+      console.log('✅ 상태 업데이트 성공, 목록 재조회 중...')
+      
       // 목록 재조회
       const [ordersRes, optionMap] = await Promise.all([
         api.admin.orders({ limit: 50 }),
@@ -262,9 +271,12 @@ export const AppProvider = ({ children }) => {
         status: o.status === 'received' ? '주문 접수' : o.status === 'in_progress' ? '제조 중' : o.status === 'completed' ? '제조 완료' : o.status,
       }))
       setOrders(ord)
+      
+      console.log('✅ 주문 목록 갱신 완료')
     } catch (e) {
-      alert('주문 상태 변경 중 오류가 발생했습니다.')
-      console.error(e)
+      console.error('❌ 주문 상태 변경 실패:', e)
+      console.error('에러 상세:', e.message, e.stack)
+      alert(`주문 상태 변경 중 오류가 발생했습니다.\n\n상세: ${e.message}`)
     }
   }
 
